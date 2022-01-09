@@ -1,4 +1,5 @@
 import configparser
+import os
 import typing
 import unittest
 
@@ -42,8 +43,7 @@ class IsisScoreConverterTest(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         # remove score files
-        # os.remove(cls.score_path)
-        pass
+        os.remove(cls.score_path)
 
     def fetch_result_score_section_tuple(self) -> tuple[LyricSection, ScoreSection]:
         result_score = configparser.ConfigParser()
