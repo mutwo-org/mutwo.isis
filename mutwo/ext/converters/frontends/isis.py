@@ -260,18 +260,25 @@ class IsisConverter(converters.abc.Converter):
         self.isis_score_converter = isis_score_converter
         self.remove_score_file = remove_score_file
 
-    def convert(self, event_to_convert: ConvertableEventUnion, path: str) -> None:
+    def convert(
+        self,
+        event_to_convert: ConvertableEventUnion,
+        path: str,
+        score_path: typing.Optional[str] = None,
+    ) -> None:
         """Render sound file via ISiS from mutwo event.
 
         :param event_to_convert: The event that shall be rendered.
-
+        :param path: The path / filename of the resulting sound file
+        :param score_path: The path where the score file shall be written to.
 
         **Disclaimer:** Before using the :class:`IsisConverter`, make sure
         `ISiS <https://forum.ircam.fr/projects/detail/isis/>`_ has been
         correctly installed on your system.
         """
 
-        score_path = f"{path}.isis_score"
+        if not score_path:
+            score_path = f"{path.split('.')[0]}.isis_score.cfg"
 
         self.isis_score_converter.convert(event_to_convert, score_path)
         command = "{} -m {} -o {}".format(
