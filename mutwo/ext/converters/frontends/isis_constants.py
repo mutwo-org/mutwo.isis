@@ -13,3 +13,11 @@ ISIS_PATH = "isis.sh"
 SILENT_FLAG = "--quiet"
 """Flag for preventing ISiS from printing any information
 during rendering."""
+
+
+SECTION_LYRIC_NAME = "lyrics"
+"""Section name for lyrics in score config file"""
+
+
+SECTION_SCORE_NAME = "score"
+"""Section name for score in score config file"""

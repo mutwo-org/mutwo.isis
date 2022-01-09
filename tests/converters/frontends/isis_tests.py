@@ -1,4 +1,4 @@
-import os
+import configparser
 import typing
 import unittest
 
@@ -19,18 +19,21 @@ class NoteLikeWithText(events.basic.SimpleEvent):
         pitch_list,
         duration: parameters.abc.DurationType,
         volume,
-        consonants: typing.Tuple[str],
+        consonant_tuple: typing.Tuple[str],
         vowel: str,
     ):
         super().__init__(duration)
         self.pitch_list = pitch_list
         self.volume = parameters.volumes.DirectVolume(volume)
-        self.consonants = consonants
+        self.consonant_tuple = consonant_tuple
         self.vowel = vowel
 
 
 class IsisScoreConverterTest(unittest.TestCase):
-    score_path = "tests/converters/frontends/isis-score"
+    score_path = "tests/converters/frontends/isis-score.cfg"
+
+    LyricSection = configparser.SectionProxy
+    ScoreSection = configparser.SectionProxy
 
     @classmethod
     def setUpClass(cls):
@@ -39,28 +42,42 @@ class IsisScoreConverterTest(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         # remove score files
-        os.remove(cls.score_path)
+        # os.remove(cls.score_path)
+        pass
+
+    def fetch_result_score_section_tuple(self) -> tuple[LyricSection, ScoreSection]:
+        result_score = configparser.ConfigParser()
+        result_score.read(self.score_path)
+        result_lyric_section = result_score[
+            converters.frontends.isis_constants.SECTION_LYRIC_NAME
+        ]
+        result_score_section = result_score[
+            converters.frontends.isis_constants.SECTION_SCORE_NAME
+        ]
+        return result_lyric_section, result_score_section
 
     def test_convert_simple_event(self):
         simple_event = NoteLikeWithText(
             [parameters.pitches.WesternPitch()], 2, 0.5, ("t",), "a"
         )
         self.converter.convert(simple_event, self.score_path)
+        (
+            result_lyric_section,
+            result_score_section,
+        ) = self.fetch_result_score_section_tuple()
 
-        expected_score = (
-            "[lyrics]\nxsampa: {} {}\n\n[score]\nmidiNotes: {}\nglobalTransposition:"
-            " 0\nrhythm: {}\nloud_accents: {}\ntempo: {}".format(
-                simple_event.consonants[0],
-                simple_event.vowel,
-                simple_event.pitch_list[0].midi_pitch_number,
-                simple_event.duration,
-                simple_event.volume.amplitude,
-                self.converter._tempo,
-            )
+        # check if lyric section is correct
+        self.assertEqual(result_lyric_section["xsampa"], "t a")
+
+        # check if score section is correct
+        self.assertEqual(
+            result_score_section["midiNotes"],
+            f"{simple_event.pitch_list[0].midi_pitch_number}",
         )
-
-        with open(self.score_path, "r") as f:
-            self.assertEqual(f.read(), expected_score)
+        self.assertEqual(result_score_section["globalTransposition"], "0")
+        self.assertEqual(result_score_section["rhythm"], "2")
+        self.assertEqual(result_score_section["loud_accents"], "0.5")
+        self.assertEqual(result_score_section["tempo"], str(self.converter._tempo))
 
     def test_convert_sequential_event(self):
         # Test if auto tie works!
@@ -76,37 +93,47 @@ class IsisScoreConverterTest(unittest.TestCase):
                 ),
             ]
         )
-        expected_score = (
-            "[lyrics]\nxsampa: {0} {1}\n        _ {0} {1}\n\n[score]\nmidiNotes: {2},\n"
-            "           0.0, {2}\nglobalTransposition: 0\nrhythm: {3},\n        7,"
-            " {3}\nloud_accents: {4},\n              0, {4}\ntempo: {5}".format(
-                sequential_event[0].consonants[0],
-                sequential_event[0].vowel,
-                sequential_event[0].pitch_list[0].midi_pitch_number,
-                sequential_event[0].duration,
-                sequential_event[0].volume.amplitude,
-                self.converter._tempo,
-            )
-        )
-
         self.converter.convert(sequential_event, self.score_path)
-        with open(self.score_path, "r") as f:
-            self.assertEqual(f.read(), expected_score)
+        (
+            result_lyric_section,
+            result_score_section,
+        ) = self.fetch_result_score_section_tuple()
+
+        # check if lyric section is correct
+        self.assertEqual(result_lyric_section["xsampa"], "t a _ t a")
+
+        # check if score section is correct
+        self.assertEqual(
+            result_score_section["midiNotes"],
+            ", ".join(
+                str(sequential_event[index].pitch_list[0].midi_pitch_number)
+                if hasattr(sequential_event[index], "pitch_list")
+                else "0.0"
+                for index in (0, 1, 3)
+            ),
+        )
+        self.assertEqual(result_score_section["globalTransposition"], "0")
+        self.assertEqual(result_score_section["rhythm"], "2, 7, 2")
+        self.assertEqual(result_score_section["loud_accents"], "0.5, 0, 0.5")
+        self.assertEqual(result_score_section["tempo"], str(self.converter._tempo))
 
     def test_convert_rest(self):
         simple_event = events.basic.SimpleEvent(3)
         self.converter.convert(simple_event, self.score_path)
+        (
+            result_lyric_section,
+            result_score_section,
+        ) = self.fetch_result_score_section_tuple()
 
-        expected_score = (
-            "[lyrics]\nxsampa: _\n\n[score]\nmidiNotes: 0.0\nglobalTransposition:"
-            " 0\nrhythm: {}\nloud_accents: 0\ntempo: {}".format(
-                simple_event.duration,
-                self.converter._tempo,
-            )
-        )
+        # check if lyric section is correct
+        self.assertEqual(result_lyric_section["xsampa"], "_")
 
-        with open(self.score_path, "r") as f:
-            self.assertEqual(f.read(), expected_score)
+        # check if score section is correct
+        self.assertEqual(result_score_section["midiNotes"], "0.0")
+        self.assertEqual(result_score_section["globalTransposition"], "0")
+        self.assertEqual(result_score_section["rhythm"], "3")
+        self.assertEqual(result_score_section["loud_accents"], "0")
+        self.assertEqual(result_score_section["tempo"], str(self.converter._tempo))
 
 
 if __name__ == "__main__":

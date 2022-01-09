@@ -6,6 +6,7 @@ them from melody and lyrics."
 <https://isis-documentation.readthedocs.io/en/latest/Intro.html#the-isis-command-line>`_.
 """
 
+import configparser
 import os
 import typing
 
@@ -22,13 +23,10 @@ ConvertableEventUnion = typing.Union[
     events.basic.SimpleEvent,
     events.basic.SequentialEvent[events.basic.SimpleEvent],
 ]
-ExtractedData = tuple[
+ExtractedDataDict = dict[
     # duration, consonants, vowel, pitch, volume
-    parameters.abc.DurationType,
-    tuple[str, ...],
     str,
-    parameters.abc.Pitch,
-    parameters.abc.Volume,
+    typing.Any,
 ]
 
 
@@ -47,6 +45,19 @@ class IsisScoreConverter(converters.abc.EventConverter):
         Defaults to 5.
     """
 
+    _extracted_data_dict_rest = {
+        "consonant_tuple": tuple([]),
+        "vowel": "_",
+        "pitch": parameters.pitches.WesternPitch(
+            "c",
+            -1,
+            concert_pitch=440,
+            concert_pitch_octave=4,
+            concert_pitch_pitch_class=9,
+        ),
+        "volume": parameters.volumes.DirectVolume(0),
+    }
+
     def __init__(
         self,
         simple_event_to_pitch: typing.Callable[
@@ -62,7 +73,7 @@ class IsisScoreConverter(converters.abc.EventConverter):
         ] = lambda simple_event: simple_event.vowel,  # type: ignore
         simple_event_to_consonant_tuple: typing.Callable[
             [events.basic.SimpleEvent], tuple[str, ...]
-        ] = lambda simple_event: simple_event.consonants,  # type: ignore
+        ] = lambda simple_event: simple_event.consonant_tuple,  # type: ignore
         is_simple_event_rest: typing.Callable[
             [events.basic.SimpleEvent], bool
         ] = lambda simple_event: not (
@@ -80,124 +91,96 @@ class IsisScoreConverter(converters.abc.EventConverter):
         self._n_events_per_line = n_events_per_line
         self._is_simple_event_rest = is_simple_event_rest
 
-        self._extraction_function_tuple = (
-            simple_event_to_consonant_tuple,
-            simple_event_to_vowel,
-            simple_event_to_pitch,
-            simple_event_to_volume,
-        )
+        self._extraction_function_dict = {
+            "consonant_tuple": simple_event_to_consonant_tuple,
+            "vowel": simple_event_to_vowel,
+            "pitch": simple_event_to_pitch,
+            "volume": simple_event_to_volume,
+        }
 
     # ###################################################################### #
     #                           private methods                              #
     # ###################################################################### #
 
-    def _make_key_from_extracted_data_per_event(
+    def _add_lyric_section(
         self,
-        key_name: str,
-        extracted_data_per_event: tuple[ExtractedData],
-        key: typing.Callable[[ExtractedData], tuple[str, ...]],
-        seperate_with_comma: bool = True,
-    ) -> str:
-        object_list_per_line_list: list[list[str]] = [[]]
-        for nth_event, extracted_data in enumerate(extracted_data_per_event):
-            object_list_per_line_list[-1].extend(key(extracted_data))
-            if nth_event % self._n_events_per_line == 0:
-                object_list_per_line_list.append([])
-
-        object_join_string = ", " if seperate_with_comma else " "
-        line_list = [object_join_string.join(line) for line in object_list_per_line_list if line]
-
-        line_join_string = ",\n" if seperate_with_comma else "\n"
-        line_join_string = "{}{}".format(line_join_string, " " * (len(key_name) + 2))
-
-        return "{}: {}".format(key_name, line_join_string.join(line_list))
-
-    def _make_lyrics_section_from_extracted_data_per_event(
-        self,
-        extracted_data_per_event: tuple[ExtractedData],
-    ) -> str:
-        xsampa = self._make_key_from_extracted_data_per_event(
-            "xsampa",
-            extracted_data_per_event,
-            lambda extracted_data: extracted_data[1] + (extracted_data[2],),
-            False,
-        )
-
-        lyric_section = "[lyrics]\n{}".format(xsampa)
-        return lyric_section
-
-    def _make_score_section_from_extracted_data_per_event(
-        self,
-        extracted_data_per_event: tuple[ExtractedData],
-    ) -> str:
-        midi_notes_str = self._make_key_from_extracted_data_per_event(
-            "midiNotes",
-            extracted_data_per_event,
-            lambda extracted_data: (str(extracted_data[3].midi_pitch_number),),
-        )
-        rhythm = self._make_key_from_extracted_data_per_event(
-            "rhythm",
-            extracted_data_per_event,
-            lambda extracted_data: (str(extracted_data[0]),),
-        )
-        loud_accents_str = self._make_key_from_extracted_data_per_event(
-            "loud_accents",
-            extracted_data_per_event,
-            lambda extracted_data: (str(extracted_data[4].amplitude),),
-        )
-        score_section = (
-            "[score]\n{}\nglobalTransposition: {}\n{}\n{}\ntempo: {}".format(
-                midi_notes_str,
-                self._global_transposition,
-                rhythm,
-                loud_accents_str,
-                self._tempo,
+        score_config_file: configparser.ConfigParser,
+        extracted_data_dict_per_event_tuple: tuple[ExtractedDataDict, ...],
+    ):
+        score_config_file[isis_constants.SECTION_LYRIC_NAME] = {
+            "xsampa": " ".join(
+                map(
+                    lambda extracted_data: " ".join(
+                        extracted_data["consonant_tuple"] + (extracted_data["vowel"],)
+                    ),
+                    extracted_data_dict_per_event_tuple,
+                )
             )
-        )
-        return score_section
+        }
+
+    def _add_score_section(
+        self,
+        score_config_file: configparser.ConfigParser,
+        extracted_data_dict_per_event_tuple: tuple[ExtractedDataDict, ...],
+    ):
+        score_section = {
+            "globalTransposition": self._global_transposition,
+            "tempo": self._tempo,
+        }
+        for parameter_name, lambda_function in (
+            (
+                "midiNotes",
+                lambda extracted_data: str(extracted_data["pitch"].midi_pitch_number),
+            ),
+            (
+                "rhythm",
+                lambda extracted_data: str(extracted_data["duration"]),
+            ),
+            (
+                "loud_accents",
+                lambda extracted_data: str(extracted_data["volume"].amplitude),
+            ),
+        ):
+            score_section.update(
+                {
+                    parameter_name: ", ".join(
+                        map(lambda_function, extracted_data_dict_per_event_tuple)
+                    )
+                }
+            )
+        score_config_file[isis_constants.SECTION_SCORE_NAME] = score_section
 
     def _convert_simple_event(
         self,
         simple_event_to_convert: events.basic.SimpleEvent,
         _: parameters.abc.DurationType,
-    ) -> tuple[ExtractedData]:
+    ) -> tuple[ExtractedDataDict]:
         duration = simple_event_to_convert.duration
-
-        extracted_data: list[object] = [duration]
-        for extraction_function in self._extraction_function_tuple:
+        extracted_data_dict: dict[str, typing.Any] = {"duration": duration}
+        for (
+            extracted_data_name,
+            extraction_function,
+        ) in self._extraction_function_dict.items():
             try:
                 extracted_information = extraction_function(simple_event_to_convert)
             except AttributeError:
-                return (
-                    (
-                        duration,
-                        tuple([]),
-                        "_",
-                        parameters.pitches.WesternPitch(
-                            "c",
-                            -1,
-                            concert_pitch=440,
-                            concert_pitch_octave=4,
-                            concert_pitch_pitch_class=9,
-                        ),
-                        parameters.volumes.DirectVolume(0),
-                    ),
-                )
+                return (dict(duration=duration, **self._extracted_data_dict_rest),)
 
-            extracted_data.append(extracted_information)
+            extracted_data_dict.update({extracted_data_name: extracted_information})
 
-        return (tuple(extracted_data),)  # type: ignore
+        return (extracted_data_dict,)
 
     def _convert_simultaneous_event(
         self,
-        simultaneous_event_to_convert: events.basic.SimultaneousEvent,
-        _: parameters.abc.DurationType,
+        _: events.basic.SimultaneousEvent,
+        __: parameters.abc.DurationType,
     ):
-        message = (
-            "Can't convert instance of SimultaneousEvent to ISiS Score. ISiS is only a"
-            " monophonic synthesizer and can't read multiple simultaneous voices!"
+        raise NotImplementedError(
+            "Can't convert instance of SimultaneousEvent to ISiS "
+            "Score. ISiS is only a"
+            " monophonic synthesizer and can't read "
+            "multiple simultaneous voices!"
         )
-        raise NotImplementedError(message)
 
     # ###################################################################### #
     #                             public api                                 #
@@ -230,23 +213,27 @@ class IsisScoreConverter(converters.abc.EventConverter):
         >>> isis_score_converter.convert(notes)
         """
 
+        # ISiS can't handle two sequental rests, therefore we have to tie two
+        # adjacent rests together.
         if isinstance(event_to_convert, events.abc.ComplexEvent):
             event_to_convert = event_to_convert.tie_by(
                 lambda event0, event1: self._is_simple_event_rest(event0)
                 and self._is_simple_event_rest(event1),
                 event_type_to_examine=events.basic.SimpleEvent,
-                mutate=False,
+                mutate=False,  # type: ignore
             )
 
-        extracted_data_per_event = self._convert_event(event_to_convert, 0)
-        lyrics_section = self._make_lyrics_section_from_extracted_data_per_event(
-            extracted_data_per_event  # type: ignore
-        )
-        score_section = self._make_score_section_from_extracted_data_per_event(
-            extracted_data_per_event  # type: ignore
-        )
+        extracted_data_dict_per_event_tuple = self._convert_event(event_to_convert, 0)
+
+        # ":" delimiter is used in ISiS example score files
+        # see https://isis-documentation.readthedocs.io/en/latest/score.html#score-example
+        score_config_file = configparser.ConfigParser(delimiters=":")
+
+        self._add_lyric_section(score_config_file, extracted_data_dict_per_event_tuple)
+        self._add_score_section(score_config_file, extracted_data_dict_per_event_tuple)
+
         with open(path, "w") as f:
-            f.write("\n\n".join([lyrics_section, score_section]))
+            score_config_file.write(f)
 
 
 class IsisConverter(converters.abc.Converter):
@@ -267,7 +254,7 @@ class IsisConverter(converters.abc.Converter):
         self,
         isis_score_converter: IsisScoreConverter,
         *flag: str,
-        remove_score_file: bool = False
+        remove_score_file: bool = False,
     ):
         self.flags = flag
         self.isis_score_converter = isis_score_converter
