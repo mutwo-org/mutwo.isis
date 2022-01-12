@@ -4,8 +4,9 @@ import typing
 import unittest
 
 from mutwo.core import events
-from mutwo.core import parameters
+from mutwo.core.utilities import constants
 
+from mutwo.ext import parameters as ext_parameters
 from mutwo.ext import converters
 
 
@@ -18,14 +19,14 @@ class NoteLikeWithText(events.basic.SimpleEvent):
     def __init__(
         self,
         pitch_list,
-        duration: parameters.abc.DurationType,
+        duration: constants.DurationType,
         volume,
         consonant_tuple: typing.Tuple[str],
         vowel: str,
     ):
         super().__init__(duration)
         self.pitch_list = pitch_list
-        self.volume = parameters.volumes.DirectVolume(volume)
+        self.volume = ext_parameters.volumes.DirectVolume(volume)
         self.consonant_tuple = consonant_tuple
         self.vowel = vowel
 
@@ -58,7 +59,7 @@ class IsisScoreConverterTest(unittest.TestCase):
 
     def test_convert_simple_event(self):
         simple_event = NoteLikeWithText(
-            [parameters.pitches.WesternPitch()], 2, 0.5, ("t",), "a"
+            [ext_parameters.pitches.WesternPitch()], 2, 0.5, ("t",), "a"
         )
         self.converter.convert(simple_event, self.score_path)
         (
@@ -84,12 +85,12 @@ class IsisScoreConverterTest(unittest.TestCase):
         sequential_event = events.basic.SequentialEvent(
             [
                 NoteLikeWithText(
-                    [parameters.pitches.WesternPitch()], 2, 0.5, ("t",), "a"
+                    [ext_parameters.pitches.WesternPitch()], 2, 0.5, ("t",), "a"
                 ),
                 events.basic.SimpleEvent(4),
                 NoteLikeWithText([], 3, 1, tuple([]), ""),
                 NoteLikeWithText(
-                    [parameters.pitches.WesternPitch()], 2, 0.5, ("t",), "a"
+                    [ext_parameters.pitches.WesternPitch()], 2, 0.5, ("t",), "a"
                 ),
             ]
         )

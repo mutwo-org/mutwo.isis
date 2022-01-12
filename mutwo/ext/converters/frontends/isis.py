@@ -12,10 +12,10 @@ import typing
 
 from mutwo.core import converters
 from mutwo.core import events
-from mutwo.core import parameters
 from mutwo.core.utilities import constants
 
 from mutwo.ext.converters.frontends import isis_constants
+from mutwo.ext import parameters as ext_parameters
 
 __all__ = ("IsisScoreConverter", "IsisConverter")
 
@@ -34,7 +34,7 @@ class IsisScoreConverter(converters.abc.EventConverter):
     """Class to convert mutwo events to a `ISiS score file. <https://isis-documentation.readthedocs.io/en/latest/score.html>`_
 
     :param simple_event_to_pitch: Function to extract an instance of
-        :class:`mutwo.parameters.abc.Pitch` from a simple event.
+        :class:`mutwo.ext.parameters.abc.Pitch` from a simple event.
     :param simple_event_to_volume:
     :param simple_event_to_vowel:
     :param simple_event_to_consonant_tuple:
@@ -48,25 +48,25 @@ class IsisScoreConverter(converters.abc.EventConverter):
     _extracted_data_dict_rest = {
         "consonant_tuple": tuple([]),
         "vowel": "_",
-        "pitch": parameters.pitches.WesternPitch(
+        "pitch": ext_parameters.pitches.WesternPitch(
             "c",
             -1,
             concert_pitch=440,
             concert_pitch_octave=4,
             concert_pitch_pitch_class=9,
         ),
-        "volume": parameters.volumes.DirectVolume(0),
+        "volume": ext_parameters.volumes.DirectVolume(0),
     }
 
     def __init__(
         self,
         simple_event_to_pitch: typing.Callable[
-            [events.basic.SimpleEvent], parameters.abc.Pitch
+            [events.basic.SimpleEvent], ext_parameters.abc.Pitch
         ] = lambda simple_event: simple_event.pitch_list[  # type: ignore
             0
         ],
         simple_event_to_volume: typing.Callable[
-            [events.basic.SimpleEvent], parameters.abc.Volume
+            [events.basic.SimpleEvent], ext_parameters.abc.Volume
         ] = lambda simple_event: simple_event.volume,  # type: ignore
         simple_event_to_vowel: typing.Callable[
             [events.basic.SimpleEvent], str
@@ -153,7 +153,7 @@ class IsisScoreConverter(converters.abc.EventConverter):
     def _convert_simple_event(
         self,
         simple_event_to_convert: events.basic.SimpleEvent,
-        _: parameters.abc.DurationType,
+        _: constants.DurationType,
     ) -> tuple[ExtractedDataDict]:
         duration = simple_event_to_convert.duration
         extracted_data_dict: dict[str, typing.Any] = {"duration": duration}
@@ -173,7 +173,7 @@ class IsisScoreConverter(converters.abc.EventConverter):
     def _convert_simultaneous_event(
         self,
         _: events.basic.SimultaneousEvent,
-        __: parameters.abc.DurationType,
+        __: constants.DurationType,
     ):
         raise NotImplementedError(
             "Can't convert instance of SimultaneousEvent to ISiS "
@@ -198,7 +198,7 @@ class IsisScoreConverter(converters.abc.EventConverter):
         **Example:**
 
         >>> from mutwo.events import events.basic, music
-        >>> from mutwo.parameters import pitches
+        >>> from mutwo.ext.parameters import pitches
         >>> from mutwo.ext.converters.frontends import isis
         >>> notes = events.basic.SequentialEvent(
         >>>    [
