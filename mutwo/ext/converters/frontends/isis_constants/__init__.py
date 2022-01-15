@@ -5,6 +5,8 @@ The flag definitions are documented
 `here <https://isis-documentation.readthedocs.io/en/latest/CmdLineArgs.html>`_.
 """
 
+from . import XSAMPA
+
 ISIS_PATH = "isis.sh"
 """The path to the ISiS shell script. When installing ISiS with the packed
 'Install_ISiS_commandline.sh' script, the path should be 'isis.sh'."""
