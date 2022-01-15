@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+
+## [0.4.0] - 2022-01-15
+
+### Added
+- global constant XSAMPA in `isis_constants` which contains all supported phonemes
+
+
 ## [0.3.0] - 2022-01-12
 
 ### Changed

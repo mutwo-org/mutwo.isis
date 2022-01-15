@@ -8,7 +8,7 @@ extras_require = {"testing": ["nose", "coveralls"]}
 
 setuptools.setup(
     name="mutwo.ext-isis",
-    version="0.3.0",
+    version="0.4.0",
     license="GPL",
     description="ISiS extension for event based framework for generative art",
     long_description=long_description,
