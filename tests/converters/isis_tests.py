@@ -3,14 +3,13 @@ import os
 import typing
 import unittest
 
-from mutwo.core import events
-from mutwo.core.utilities import constants
+from mutwo import core_events
+from mutwo import core_constants
+from mutwo import music_parameters
+from mutwo import isis_converters
 
-from mutwo.ext import parameters as ext_parameters
-from mutwo.ext import converters
 
-
-class NoteLikeWithText(events.basic.SimpleEvent):
+class NoteLikeWithText(core_events.SimpleEvent):
     """NoteLike with additional consonants and vowel attributes.
 
     Mocking class (only for testing purposes).
@@ -18,28 +17,28 @@ class NoteLikeWithText(events.basic.SimpleEvent):
 
     def __init__(
         self,
-        pitch_list,
-        duration: constants.DurationType,
-        volume,
+        pitch_list: list[music_parameters.abc.Pitch],
+        duration: core_constants.DurationType,
+        volume: float,
         consonant_tuple: typing.Tuple[str],
         vowel: str,
     ):
         super().__init__(duration)
         self.pitch_list = pitch_list
-        self.volume = ext_parameters.volumes.DirectVolume(volume)
+        self.volume = music_parameters.DirectVolume(volume)
         self.consonant_tuple = consonant_tuple
         self.vowel = vowel
 
 
 class IsisScoreConverterTest(unittest.TestCase):
-    score_path = "tests/converters/frontends/isis-score.cfg"
+    score_path = "tests/converters/isis-score.cfg"
 
     LyricSection = configparser.SectionProxy
     ScoreSection = configparser.SectionProxy
 
     @classmethod
     def setUpClass(cls):
-        cls.converter = converters.frontends.isis.IsisScoreConverter()
+        cls.converter = isis_converters.IsisScoreConverter()
 
     @classmethod
     def tearDownClass(cls):
@@ -50,16 +49,16 @@ class IsisScoreConverterTest(unittest.TestCase):
         result_score = configparser.ConfigParser()
         result_score.read(self.score_path)
         result_lyric_section = result_score[
-            converters.frontends.isis_constants.SECTION_LYRIC_NAME
+            isis_converters.constants.SECTION_LYRIC_NAME
         ]
         result_score_section = result_score[
-            converters.frontends.isis_constants.SECTION_SCORE_NAME
+            isis_converters.constants.SECTION_SCORE_NAME
         ]
         return result_lyric_section, result_score_section
 
     def test_convert_simple_event(self):
         simple_event = NoteLikeWithText(
-            [ext_parameters.pitches.WesternPitch()], 2, 0.5, ("t",), "a"
+            [music_parameters.WesternPitch()], 2, 0.5, ("t",), "a"
         )
         self.converter.convert(simple_event, self.score_path)
         (
@@ -82,15 +81,15 @@ class IsisScoreConverterTest(unittest.TestCase):
 
     def test_convert_sequential_event(self):
         # Test if auto tie works!
-        sequential_event = events.basic.SequentialEvent(
+        sequential_event = core_events.SequentialEvent(
             [
                 NoteLikeWithText(
-                    [ext_parameters.pitches.WesternPitch()], 2, 0.5, ("t",), "a"
+                    [music_parameters.WesternPitch()], 2, 0.5, ("t",), "a"
                 ),
-                events.basic.SimpleEvent(4),
+                core_events.SimpleEvent(4),
                 NoteLikeWithText([], 3, 1, tuple([]), ""),
                 NoteLikeWithText(
-                    [ext_parameters.pitches.WesternPitch()], 2, 0.5, ("t",), "a"
+                    [music_parameters.WesternPitch()], 2, 0.5, ("t",), "a"
                 ),
             ]
         )
@@ -119,7 +118,7 @@ class IsisScoreConverterTest(unittest.TestCase):
         self.assertEqual(result_score_section["tempo"], str(self.converter._tempo))
 
     def test_convert_rest(self):
-        simple_event = events.basic.SimpleEvent(3)
+        simple_event = core_events.SimpleEvent(3)
         self.converter.convert(simple_event, self.score_path)
         (
             result_lyric_section,

@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 
 
+## [0.5.0] - 2022-02-10
+
+### Changed
+- to namespace package to make it compatible with recent `mutwo.ext-core` and `mutwo.ext-music` versions
+
+
 ## [0.4.0] - 2022-01-15
 
 ### Added

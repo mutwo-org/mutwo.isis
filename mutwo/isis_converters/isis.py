@@ -10,18 +10,17 @@ import configparser
 import os
 import typing
 
-from mutwo.core import converters
-from mutwo.core import events
-from mutwo.core.utilities import constants
-
-from mutwo.ext.converters.frontends import isis_constants
-from mutwo.ext import parameters as ext_parameters
+from mutwo import core_converters
+from mutwo import core_constants
+from mutwo import core_events
+from mutwo import isis_converters
+from mutwo import music_parameters
 
 __all__ = ("IsisScoreConverter", "IsisConverter")
 
 ConvertableEventUnion = typing.Union[
-    events.basic.SimpleEvent,
-    events.basic.SequentialEvent[events.basic.SimpleEvent],
+    core_events.SimpleEvent,
+    core_events.SequentialEvent[core_events.SimpleEvent],
 ]
 ExtractedDataDict = dict[
     # duration, consonants, vowel, pitch, volume
@@ -30,7 +29,7 @@ ExtractedDataDict = dict[
 ]
 
 
-class IsisScoreConverter(converters.abc.EventConverter):
+class IsisScoreConverter(core_converters.abc.EventConverter):
     """Class to convert mutwo events to a `ISiS score file. <https://isis-documentation.readthedocs.io/en/latest/score.html>`_
 
     :param simple_event_to_pitch: Function to extract an instance of
@@ -48,41 +47,41 @@ class IsisScoreConverter(converters.abc.EventConverter):
     _extracted_data_dict_rest = {
         "consonant_tuple": tuple([]),
         "vowel": "_",
-        "pitch": ext_parameters.pitches.WesternPitch(
+        "pitch": music_parameters.WesternPitch(
             "c",
             -1,
             concert_pitch=440,
             concert_pitch_octave=4,
             concert_pitch_pitch_class=9,
         ),
-        "volume": ext_parameters.volumes.DirectVolume(0),
+        "volume": music_parameters.DirectVolume(0),
     }
 
     def __init__(
         self,
         simple_event_to_pitch: typing.Callable[
-            [events.basic.SimpleEvent], ext_parameters.abc.Pitch
+            [core_events.SimpleEvent], music_parameters.abc.Pitch
         ] = lambda simple_event: simple_event.pitch_list[  # type: ignore
             0
         ],
         simple_event_to_volume: typing.Callable[
-            [events.basic.SimpleEvent], ext_parameters.abc.Volume
+            [core_events.SimpleEvent], music_parameters.abc.Volume
         ] = lambda simple_event: simple_event.volume,  # type: ignore
         simple_event_to_vowel: typing.Callable[
-            [events.basic.SimpleEvent], str
+            [core_events.SimpleEvent], str
         ] = lambda simple_event: simple_event.vowel,  # type: ignore
         simple_event_to_consonant_tuple: typing.Callable[
-            [events.basic.SimpleEvent], tuple[str, ...]
+            [core_events.SimpleEvent], tuple[str, ...]
         ] = lambda simple_event: simple_event.consonant_tuple,  # type: ignore
         is_simple_event_rest: typing.Callable[
-            [events.basic.SimpleEvent], bool
+            [core_events.SimpleEvent], bool
         ] = lambda simple_event: not (
             hasattr(simple_event, "pitch_list")
             and simple_event.pitch_list  # type: ignore
         ),
-        tempo: constants.Real = 60,
+        tempo: core_constants.Real = 60,
         global_transposition: int = 0,
-        default_sentence_loudness: typing.Union[constants.Real, None] = None,
+        default_sentence_loudness: typing.Union[core_constants.Real, None] = None,
         n_events_per_line: int = 5,
     ):
         self._tempo = tempo
@@ -107,7 +106,7 @@ class IsisScoreConverter(converters.abc.EventConverter):
         score_config_file: configparser.ConfigParser,
         extracted_data_dict_per_event_tuple: tuple[ExtractedDataDict, ...],
     ):
-        score_config_file[isis_constants.SECTION_LYRIC_NAME] = {
+        score_config_file[isis_converters.constants.SECTION_LYRIC_NAME] = {
             "xsampa": " ".join(
                 map(
                     lambda extracted_data: " ".join(
@@ -148,12 +147,12 @@ class IsisScoreConverter(converters.abc.EventConverter):
                     )
                 }
             )
-        score_config_file[isis_constants.SECTION_SCORE_NAME] = score_section
+        score_config_file[isis_converters.constants.SECTION_SCORE_NAME] = score_section
 
     def _convert_simple_event(
         self,
-        simple_event_to_convert: events.basic.SimpleEvent,
-        _: constants.DurationType,
+        simple_event_to_convert: core_events.SimpleEvent,
+        _: core_constants.DurationType,
     ) -> tuple[ExtractedDataDict]:
         duration = simple_event_to_convert.duration
         extracted_data_dict: dict[str, typing.Any] = {"duration": duration}
@@ -172,8 +171,8 @@ class IsisScoreConverter(converters.abc.EventConverter):
 
     def _convert_simultaneous_event(
         self,
-        _: events.basic.SimultaneousEvent,
-        __: constants.DurationType,
+        _: core_events.SimultaneousEvent,
+        __: core_constants.DurationType,
     ):
         raise NotImplementedError(
             "Can't convert instance of SimultaneousEvent to ISiS "
@@ -191,18 +190,18 @@ class IsisScoreConverter(converters.abc.EventConverter):
 
         :param event_to_convert: The event that shall be rendered to a ISiS score
             file.
-        :type event_to_convert: typing.Union[events.basic.SimpleEvent, events.basic.SequentialEvent[events.basic.SimpleEvent]]
+        :type event_to_convert: typing.Union[core_events.SimpleEvent, core_events.SequentialEvent[core_events.SimpleEvent]]
         :param path: where to write the ISiS score file
         :type path: str
 
         **Example:**
 
-        >>> from mutwo.events import events.basic, music
+        >>> from mutwo.events import core_events, music
         >>> from mutwo.ext.parameters import pitches
         >>> from mutwo.ext.converters.frontends import isis
-        >>> notes = events.basic.SequentialEvent(
+        >>> notes = core_events.SequentialEvent(
         >>>    [
-        >>>         music.NoteLike(pitches.WesternPitch(pitch_name), 0.5, 0.5)
+        >>>         music.NoteLike(WesternPitch(pitch_name), 0.5, 0.5)
         >>>         for pitch_name in 'c f d g'.split(' ')
         >>>    ]
         >>> )
@@ -215,11 +214,11 @@ class IsisScoreConverter(converters.abc.EventConverter):
 
         # ISiS can't handle two sequental rests, therefore we have to tie two
         # adjacent rests together.
-        if isinstance(event_to_convert, events.abc.ComplexEvent):
+        if isinstance(event_to_convert, core_events.abc.ComplexEvent):
             event_to_convert = event_to_convert.tie_by(
                 lambda event0, event1: self._is_simple_event_rest(event0)
                 and self._is_simple_event_rest(event1),
-                event_type_to_examine=events.basic.SimpleEvent,
+                event_type_to_examine=core_events.SimpleEvent,
                 mutate=False,  # type: ignore
             )
 
@@ -236,13 +235,13 @@ class IsisScoreConverter(converters.abc.EventConverter):
             score_config_file.write(f)
 
 
-class IsisConverter(converters.abc.Converter):
+class IsisConverter(core_converters.abc.Converter):
     """Generate audio files with `ISiS <https://forum.ircam.fr/projects/detail/isis/>`_.
 
     :param isis_score_converter: The :class:`IsisScoreConverter` that shall be used
         to render the ISiS score file from a mutwo event.
     :param *flag: Flag that shall be added when calling ISiS. Several of the supported
-        ISiS flags can be found in :mod:`mutwo.ext.converters.frontends.isis_constants`.
+        ISiS flags can be found in :mod:`mutwo.ext.converters.frontends.isis_converters.constants`.
     :param remove_score_file: Set to True if :class:`IsisConverter` shall remove the
         ISiS score file after rendering. Defaults to False.
 
@@ -282,7 +281,7 @@ class IsisConverter(converters.abc.Converter):
 
         self.isis_score_converter.convert(event_to_convert, score_path)
         command = "{} -m {} -o {}".format(
-            isis_constants.ISIS_PATH,
+            isis_converters.constants.ISIS_PATH,
             score_path,
             path,
         )
