@@ -244,6 +244,10 @@ class IsisConverter(core_converters.abc.Converter):
         ISiS flags can be found in :mod:`mutwo.ext.converters.frontends.isis_converters.constants`.
     :param remove_score_file: Set to True if :class:`IsisConverter` shall remove the
         ISiS score file after rendering. Defaults to False.
+    :param isis_executable_path: The path to the ISiS executable (binary file). If not
+        specified the value of
+        :const:`mutwo.isis_converters.configurations.DEFAULT_ISIS_EXECUTABLE_PATH`
+        will be used.
 
     **Disclaimer:** Before using the :class:`IsisConverter`, make sure ISiS has been
     correctly installed on your system.
@@ -254,10 +258,17 @@ class IsisConverter(core_converters.abc.Converter):
         isis_score_converter: IsisScoreConverter,
         *flag: str,
         remove_score_file: bool = False,
+        isis_executable_path: typing.Optional[str] = None,
     ):
+        if not isis_executable_path:
+            isis_executable_path = (
+                isis_converters.configurations.DEFAULT_ISIS_EXECUTABLE_PATH
+            )
+
         self.flags = flag
         self.isis_score_converter = isis_score_converter
         self.remove_score_file = remove_score_file
+        self._isis_executable_path = isis_executable_path
 
     def convert(
         self,
@@ -281,7 +292,7 @@ class IsisConverter(core_converters.abc.Converter):
 
         self.isis_score_converter.convert(event_to_convert, score_path)
         command = "{} -m {} -o {}".format(
-            isis_converters.constants.ISIS_PATH,
+            self._isis_executable_path,
             score_path,
             path,
         )

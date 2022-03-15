@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2022-02-15
+
+### Added
+- `isis_executable_path` parameter to `IsisConverter`
+
+### Changed
+- `ISIS_PATH` to `DEFAULT_ISIS_EXECUTABLE_PATH`
+- location of `DEFAULT_ISIS_EXECUTABLE_PATH` from `constants` to `configurations`
+
 
 ## [0.5.0] - 2022-02-10
 
