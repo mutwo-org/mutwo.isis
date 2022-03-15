@@ -9,7 +9,7 @@ ISiS extension for event based library [mutwo](https://github.com/mutwo-org/mutw
 
 This extension implements:
 
-- mutwo.ext.converters.frontends.isis extension package.
+- `mutwo.isis_converters`
 
 ### Installation
 
