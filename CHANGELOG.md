@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.7.0] - 2022-02-20
+
+### Changed
+- `IsisConverter` to `EventToSingingSynthesis`
+- `IsisScoreConverter` to `EventToIsisScore`
+
+
 ## [0.6.0] - 2022-02-15
 
 ### Added
