@@ -16,7 +16,7 @@ from mutwo import core_events
 from mutwo import isis_converters
 from mutwo import music_parameters
 
-__all__ = ("IsisScoreConverter", "IsisConverter")
+__all__ = ("EventToIsisScore", "EventToSingingSynthesis")
 
 ConvertableEventUnion = typing.Union[
     core_events.SimpleEvent,
@@ -29,11 +29,11 @@ ExtractedDataDict = dict[
 ]
 
 
-class IsisScoreConverter(core_converters.abc.EventConverter):
+class EventToIsisScore(core_converters.abc.EventConverter):
     """Class to convert mutwo events to a `ISiS score file. <https://isis-documentation.readthedocs.io/en/latest/score.html>`_
 
     :param simple_event_to_pitch: Function to extract an instance of
-        :class:`mutwo.ext.parameters.abc.Pitch` from a simple event.
+        :class:`mutwo.music_parameters.abc.Pitch` from a simple event.
     :param simple_event_to_volume:
     :param simple_event_to_vowel:
     :param simple_event_to_consonant_tuple:
@@ -196,20 +196,21 @@ class IsisScoreConverter(core_converters.abc.EventConverter):
 
         **Example:**
 
-        >>> from mutwo.events import core_events, music
-        >>> from mutwo.ext.parameters import pitches
-        >>> from mutwo.ext.converters.frontends import isis
+        >>> from mutwo import core_events
+        >>> from mutwo import music_events
+        >>> from mutwo import music_parameters
+        >>> from mutwo import isis_converters
         >>> notes = core_events.SequentialEvent(
         >>>    [
-        >>>         music.NoteLike(WesternPitch(pitch_name), 0.5, 0.5)
+        >>>         music_events.NoteLike(music_parameters.WesternPitch(pitch_name), 0.5, 0.5)
         >>>         for pitch_name in 'c f d g'.split(' ')
         >>>    ]
         >>> )
         >>> for consonants, vowel, note in zip([[], [], ['t'], []], ['a', 'o', 'e', 'a'], notes):
         >>>     note.vowel = vowel
         >>>     note.consonants = consonants
-        >>> isis_score_converter = isis.IsisScoreConverter('my_singing_score')
-        >>> isis_score_converter.convert(notes)
+        >>> event_to_isis_score = isis.EventToIsisScore('my_singing_score')
+        >>> event_to_isis_score.convert(notes)
         """
 
         # ISiS can't handle two sequental rests, therefore we have to tie two
@@ -235,27 +236,27 @@ class IsisScoreConverter(core_converters.abc.EventConverter):
             score_config_file.write(f)
 
 
-class IsisConverter(core_converters.abc.Converter):
+class EventToSingingSynthesis(core_converters.abc.Converter):
     """Generate audio files with `ISiS <https://forum.ircam.fr/projects/detail/isis/>`_.
 
-    :param isis_score_converter: The :class:`IsisScoreConverter` that shall be used
+    :param isis_score_converter: The :class:`EventToIsisScore` that shall be used
         to render the ISiS score file from a mutwo event.
     :param *flag: Flag that shall be added when calling ISiS. Several of the supported
-        ISiS flags can be found in :mod:`mutwo.ext.converters.frontends.isis_converters.constants`.
-    :param remove_score_file: Set to True if :class:`IsisConverter` shall remove the
+        ISiS flags can be found in :mod:`mutwo.isis_converters.constants`.
+    :param remove_score_file: Set to True if :class:`EventToSingingSynthesis` shall remove the
         ISiS score file after rendering. Defaults to False.
     :param isis_executable_path: The path to the ISiS executable (binary file). If not
         specified the value of
         :const:`mutwo.isis_converters.configurations.DEFAULT_ISIS_EXECUTABLE_PATH`
         will be used.
 
-    **Disclaimer:** Before using the :class:`IsisConverter`, make sure ISiS has been
+    **Disclaimer:** Before using the :class:`EventToSingingSynthesis`, make sure ISiS has been
     correctly installed on your system.
     """
 
     def __init__(
         self,
-        isis_score_converter: IsisScoreConverter,
+        isis_score_converter: EventToIsisScore,
         *flag: str,
         remove_score_file: bool = False,
         isis_executable_path: typing.Optional[str] = None,
@@ -282,7 +283,7 @@ class IsisConverter(core_converters.abc.Converter):
         :param path: The path / filename of the resulting sound file
         :param score_path: The path where the score file shall be written to.
 
-        **Disclaimer:** Before using the :class:`IsisConverter`, make sure
+        **Disclaimer:** Before using the :class:`EventToSingingSynthesis`, make sure
         `ISiS <https://forum.ircam.fr/projects/detail/isis/>`_ has been
         correctly installed on your system.
         """

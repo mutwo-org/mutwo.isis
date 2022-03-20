@@ -30,7 +30,7 @@ class NoteLikeWithText(core_events.SimpleEvent):
         self.vowel = vowel
 
 
-class IsisScoreConverterTest(unittest.TestCase):
+class EventToIsisScoreTest(unittest.TestCase):
     score_path = "tests/converters/isis-score.cfg"
 
     LyricSection = configparser.SectionProxy
@@ -38,7 +38,7 @@ class IsisScoreConverterTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.converter = isis_converters.IsisScoreConverter()
+        cls.converter = isis_converters.EventToIsisScore()
 
     @classmethod
     def tearDownClass(cls):
