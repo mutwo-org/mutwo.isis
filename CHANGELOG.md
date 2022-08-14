@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.0] - 2022-08-14
+
+### Changed
+- package name from `mutwo.ext-isis` to `mutwo.isis`
+
+### Added
+- custom exception for better error handling
+
+
 ## [0.7.0] - 2022-02-20
 
 ### Changed
