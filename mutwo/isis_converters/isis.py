@@ -154,7 +154,7 @@ class EventToIsisScore(core_converters.abc.EventConverter):
         simple_event_to_convert: core_events.SimpleEvent,
         _: core_constants.DurationType,
     ) -> tuple[ExtractedDataDict]:
-        duration = simple_event_to_convert.duration
+        duration = simple_event_to_convert.duration.duration_in_floats
         extracted_data_dict: dict[str, typing.Any] = {"duration": duration}
         for (
             extracted_data_name,

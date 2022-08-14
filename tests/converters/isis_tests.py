@@ -58,7 +58,7 @@ class EventToIsisScoreTest(unittest.TestCase):
 
     def test_convert_simple_event(self):
         simple_event = NoteLikeWithText(
-            [music_parameters.WesternPitch()], 2, 0.5, ("t",), "a"
+            [music_parameters.WesternPitch()], 2., 0.5, ("t",), "a"
         )
         self.converter.convert(simple_event, self.score_path)
         (
@@ -75,7 +75,7 @@ class EventToIsisScoreTest(unittest.TestCase):
             f"{simple_event.pitch_list[0].midi_pitch_number}",
         )
         self.assertEqual(result_score_section["globalTransposition"], "0")
-        self.assertEqual(result_score_section["rhythm"], "2")
+        self.assertEqual(result_score_section["rhythm"], "2.0")
         self.assertEqual(result_score_section["loud_accents"], "0.5")
         self.assertEqual(result_score_section["tempo"], str(self.converter._tempo))
 
@@ -113,7 +113,7 @@ class EventToIsisScoreTest(unittest.TestCase):
             ),
         )
         self.assertEqual(result_score_section["globalTransposition"], "0")
-        self.assertEqual(result_score_section["rhythm"], "2, 7, 2")
+        self.assertEqual(result_score_section["rhythm"], "2.0, 7.0, 2.0")
         self.assertEqual(result_score_section["loud_accents"], "0.5, 0, 0.5")
         self.assertEqual(result_score_section["tempo"], str(self.converter._tempo))
 
@@ -131,7 +131,7 @@ class EventToIsisScoreTest(unittest.TestCase):
         # check if score section is correct
         self.assertEqual(result_score_section["midiNotes"], "0.0")
         self.assertEqual(result_score_section["globalTransposition"], "0")
-        self.assertEqual(result_score_section["rhythm"], "3")
+        self.assertEqual(result_score_section["rhythm"], "3.0")
         self.assertEqual(result_score_section["loud_accents"], "0")
         self.assertEqual(result_score_section["tempo"], str(self.converter._tempo))
 
