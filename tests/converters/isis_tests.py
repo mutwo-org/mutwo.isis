@@ -5,8 +5,9 @@ import unittest
 
 from mutwo import core_events
 from mutwo import core_constants
-from mutwo import music_parameters
 from mutwo import isis_converters
+from mutwo import isis_utilities
+from mutwo import music_parameters
 
 
 class NoteLikeWithText(core_events.SimpleEvent):
@@ -58,7 +59,7 @@ class EventToIsisScoreTest(unittest.TestCase):
 
     def test_convert_simple_event(self):
         simple_event = NoteLikeWithText(
-            [music_parameters.WesternPitch()], 2., 0.5, ("t",), "a"
+            [music_parameters.WesternPitch()], 2.0, 0.5, ("t",), "a"
         )
         self.converter.convert(simple_event, self.score_path)
         (
@@ -134,6 +135,20 @@ class EventToIsisScoreTest(unittest.TestCase):
         self.assertEqual(result_score_section["rhythm"], "3.0")
         self.assertEqual(result_score_section["loud_accents"], "0")
         self.assertEqual(result_score_section["tempo"], str(self.converter._tempo))
+
+
+class SimultaneousEventToIsisScoreTest(unittest.TestCase):
+    def setUp(self):
+        self.converter = isis_converters.EventToIsisScore()
+        self.simultaneous_event = core_events.SimultaneousEvent()
+
+    def test_convert(self):
+        self.assertRaises(
+            isis_utilities.MonophonicSynthesizerError,
+            self.converter.convert,
+            self.simultaneous_event,
+            "test.cfg",
+        )
 
 
 if __name__ == "__main__":
