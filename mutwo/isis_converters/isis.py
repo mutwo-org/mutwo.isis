@@ -14,6 +14,7 @@ from mutwo import core_converters
 from mutwo import core_constants
 from mutwo import core_events
 from mutwo import isis_converters
+from mutwo import isis_utilities
 from mutwo import music_parameters
 
 __all__ = ("EventToIsisScore", "EventToSingingSynthesis")
@@ -174,12 +175,7 @@ class EventToIsisScore(core_converters.abc.EventConverter):
         _: core_events.SimultaneousEvent,
         __: core_constants.DurationType,
     ):
-        raise NotImplementedError(
-            "Can't convert instance of SimultaneousEvent to ISiS "
-            "Score. ISiS is only a"
-            " monophonic synthesizer and can't read "
-            "multiple simultaneous voices!"
-        )
+        raise isis_utilities.MonophonicSynthesizerError()
 
     # ###################################################################### #
     #                             public api                                 #
